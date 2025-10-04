@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Jacky Chen - Lab 4</title>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <style>
+            body { 
+                font-family: Arial, sans-serif; 
+                margin: 20px;
+            }
+            .container { 
+                width: 90%; 
+                margin: 0 auto; 
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            .chart { 
+                margin-bottom: 50px;
+                width: 100%;
+            }
+            .visualization {
+                display: flex;
+                flex-direction: column;
+                gap: 80px;  /* Space between visualizations */
+                align-items: center;
+                margin-top: 50px;
+                width: 100%;
+            }
+            .visualization svg {
+                margin-bottom: 30px;
+                border: 1px solid #eee;
+                padding: 20px;
+                border-radius: 5px;
+                /* box-shadow: 0 2px 4px rgba(0,0,0,0.1); */
+            }
+            .dropdown {
+                position: relative;
+                display: inline-block;
+            }
+            .dropdown-content {
+                display: none;
+                position: absolute;
+                background-color: #f9f9f9;
+                min-width: 160px;
+                box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+                z-index: 1;
+            }
+            .dropdown-content a {
+                color: black;
+                padding: 12px 16px;
+                text-decoration: none;
+                display: block;
+            }
+            .dropdown-content a:hover {background-color: #f1f1f1}
+            .show {display:block;}
+           
+            .axis text {
+                font-size: 9px;
+            }
+           
+            .background path {
+                fill: none;
+                /* stroke: #ddd; */
+                stroke-opacity: 0.4;
+            }
+           
+            .foreground path {
+                fill: none;
+                stroke: steelblue;
+                stroke-opacity: 0.4;
+            }
+            .axis-line {
+                stroke: #000000;
+            }
+            .axis-label {
+                font-size: 12px;
+                fill: #ff3131;
+            }
+            .point {
+                /* fill: #000000; */
+                opacity: 0.6;
+            }
+            .loading {
+                font-family: Arial, sans-serif;
+                font-size: 20px;
+                text-align: center;
+            }
+            .quadrant-line {
+                /* stroke: #000000; */
+                stroke-width: 1;
+            }
+            .quadrant-label {
+                font-size: 16px;
+                font-family: Arial, sans-serif;
+                /* fill: #000000; */
+            }
+            /* New styles for visualization titles */
+            .visualization-title {
+                font-size: 24px;
+                font-weight: bold;
+                margin-bottom: 20px;
+                /* color: #333; */
+                text-align: center;
+                width: 100%;
+            }
+            .display-controls {
+                margin-bottom: 30px;
+            }
+            .control-panel {
+                margin-bottom: 40px;
+                width: 100%;
+                text-align: center;
+            }
+            #variable-select {
+                padding: 8px;
+                font-size: 16px;
+                margin-bottom: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="display-controls">
+              <label>
+                <input type="radio" name="display-mode" value="select" checked> Bar/Histogram Selection
+              </label>
+              <label>
+                <input type="radio" name="display-mode" value="cluster"> K-Means Clustering
+              </label>
+            </div>
+         
+            <div id="select-display" class="display-mode">
+              <div class="control-panel">
+                <select id="variable-select" class="form-select">
+                  <option value="">Select Variable</option>
+                </select>
+              </div>
+            </div>
+        </div>
+        <script src="index.js"></script>
+        <div id="visualization" class="visualization"></div>
+    </body>
+</html>

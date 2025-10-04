@@ -1,0 +1,153 @@
+<!-- HTML frontend elements were generated with Claude and modified to my liking -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Correlation Matrix</title>
+    <link rel="stylesheet" href="shared-styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>8x8 Correlation Matrix</h1>
+        <a href="index.html" class="back-link">← Back to Index</a>
+        <div id="visualization" class="visualization"></div>
+    </div>
+
+    <script>
+        async function drawCorrelationMatrix() {
+            // load
+            const data = await d3.json('correlation_data.json');
+            const correlations = data.correlation;
+            const variables = data.column_names;
+
+            // Colors (for easy modification)
+            const blue = '#0047AB'
+            const white = '#ffffff'
+            const red = '#d73027'
+
+            // dimensions (template from lab 2)
+            const margin = {top: 105, right: 50, bottom: 50, left: 240};
+            const width = 800 - margin.left - margin.right;
+            const height = 800 - margin.top - margin.bottom;
+            const cellSize = Math.floor(width / variables.length);
+
+            // create graph
+            const svg = d3.select('#visualization')
+                .append('svg')
+                .attr('width', width + margin.left + margin.right)
+                .attr('height', height + margin.top + margin.bottom)
+                .append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+
+            // color scale ()
+            const colorScale = d3.scaleLinear()
+                .domain([-1, 0, 1])
+                .range([blue, white, red]);
+
+            // create cells
+            const cells = svg.selectAll('rect')
+                .data(d3.cross(variables, variables))
+                .enter()
+                .append('rect')
+                .attr('x', d => variables.indexOf(d[0]) * cellSize)
+                .attr('y', d => variables.indexOf(d[1]) * cellSize)
+                .attr('width', cellSize)
+                .attr('height', cellSize)
+                .style('fill', d => colorScale(correlations[variables.indexOf(d[0])][d[1]]))
+                .style('stroke', 'black')
+                .style('stroke-width', 1);
+            
+            // tooltips made with the help of Claude so that you can actually click and see the value of correlation
+            const tooltip = d3.select('body')
+                .append('div')
+                .attr('class', 'tooltip')
+                .style('opacity', 0);
+
+            cells.on('mouseover', (event, d) => {
+                const correlation = correlations[variables.indexOf(d[0])][d[1]];
+                tooltip.transition()
+                    .duration(200)
+                    .style('opacity', .9);
+                tooltip.html(`${d[0]} vs ${d[1]}<br>Correlation: ${correlation.toFixed(3)}`)
+                    .style('left', (event.pageX + 10) + 'px')
+                    .style('top', (event.pageY - 28) + 'px');
+            })
+            .on('mouseout', () => {
+                tooltip.transition()
+                    .duration(500)
+                    .style('opacity', 0);
+            });
+
+            // variable labels
+            const xLabels = svg.selectAll('.xLabel')
+                .data(variables)
+                .enter()
+                .append('text')
+                .attr('class', 'xLabel')
+                .text(d => d)
+                .attr('x', (d, i) => i * cellSize + cellSize / 2)
+                .attr('y', -50)
+                .style('text-anchor', 'middle')
+                .attr('transform', d => `rotate(-25 ${variables.indexOf(d) * cellSize + cellSize / 2} -10)`);
+
+            const yLabels = svg.selectAll('.yLabel')
+                .data(variables)
+                .enter()
+                .append('text')
+                .attr('class', 'yLabel')
+                .text(d => d)
+                .attr('x', -10)
+                .attr('y', (d, i) => i * cellSize + cellSize / 2)
+                .style('text-anchor', 'end')
+                .style('alignment-baseline', 'middle');
+
+            // legend for the color range (made with the help of ChatGPT and some code from Lab 2 Code)
+            const legendWidth = 200;
+            const legendHeight = 20;
+            const legendX = (width - legendWidth) / 2;
+            const legendY = height + margin.bottom - 150;
+
+            // gradient definition
+            const defs = svg.append('defs');
+            const linearGradient = defs.append('linearGradient')
+                .attr('id', 'linear-gradient');
+
+            linearGradient.append('stop')
+                .attr('offset', '0%')
+                .attr('stop-color', blue); // Blue for -1
+            linearGradient.append('stop')
+                .attr('offset', '50%')
+                .attr('stop-color', white); // White for 0
+            linearGradient.append('stop')
+                .attr('offset', '100%')
+                .attr('stop-color', red); // Red for 1
+            
+            // rectangle for the legend
+            svg.append('rect')
+                .attr('x', legendX)
+                .attr('y', legendY)
+                .attr('width', legendWidth)
+                .attr('height', legendHeight)
+                .style('fill', 'url(#linear-gradient)');
+
+            // legend labels
+            const legendScale = d3.scaleLinear()
+                .domain([-1, 1])
+                .range([legendX, legendX + legendWidth]);
+
+            const legendAxis = d3.axisBottom(legendScale)
+                .ticks(3) // [-1, 0, 1]
+                .tickFormat(d3.format(".1f"));
+
+            svg.append('g')
+                .attr('class', 'legend axis')
+                .attr('transform', `translate(0,${legendY + legendHeight})`)
+                .call(legendAxis);
+        }
+
+        drawCorrelationMatrix();
+    </script>
+</body>
+</html>

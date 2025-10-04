@@ -1,0 +1,185 @@
+<!-- HTML frontend elements were generated with Claude and modified to my liking -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCA Analysis</title>
+    <link rel="stylesheet" href="shared-styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        .container {    /* styling from ChatGPT to make plots one on top of the other */
+            display: flex;
+            flex-direction: column;
+            align-items: left;
+            gap: 20px;
+        }
+        .point {
+            fill: #4682b4;
+            opacity: 0.6;
+        }
+        .bar {
+            fill: #4682b4;
+        }
+        .bar:hover {
+            fill: #2c5282;
+        }
+        .axis-label {
+            font-size: 12px;
+            fill: #000000 ;
+        }
+        .loading {
+            font-family: Arial, sans-serif;
+            font-size: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PCA Analysis</h1>
+        <a href="index.html" class="back-link">← Back to Index</a>
+        <div id="pca-plot" class="visualization"></div>
+        <div id="scree-plot" class="visualization"></div>
+    </div>
+
+    <script>
+        const margin = {top: 40, right: 40, bottom: 60, left: 60};
+        const width = 600 - margin.left - margin.right;
+        const height = 500 - margin.top - margin.bottom;
+
+        // create plots
+        const svgPCA = d3.select("#pca-plot")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        const svgScree = d3.select("#scree-plot")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        // load
+        d3.json("pca_plot_data.json").then(data => {
+            const pcaCoords = data.pca_coords;
+            const explainedVariance = data.explained_variance;
+
+            // PCA scatterplot
+            // scales
+            const xExtent = d3.extent(pcaCoords, d => d[0]);
+            const yExtent = d3.extent(pcaCoords, d => d[1]);
+            const padding = 0.1;
+
+            const xScale = d3.scaleLinear()
+                .domain([xExtent[0] * (1 + padding), xExtent[1] * (1 + padding)])
+                .range([0, width]);
+
+            const yScale = d3.scaleLinear()
+                .domain([yExtent[0] * (1 + padding), yExtent[1] * (1 + padding)])
+                .range([height, 0]);
+
+            // axes
+            const xAxis = d3.axisBottom(xScale);
+            const yAxis = d3.axisLeft(yScale);
+
+            svgPCA.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(xAxis);
+
+            svgPCA.append("g")
+                .call(yAxis);
+
+            // axis labels
+            svgPCA.append("text")
+                .attr("x", width / 2)
+                .attr("y", height + 40)
+                .attr("class", "axis-label")
+                .style("text-anchor", "middle")
+                .text("First Principal Component");
+
+            svgPCA.append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("x", -height / 2)
+                .attr("y", -40)
+                .attr("class", "axis-label")
+                .style("text-anchor", "middle")
+                .text("Second Principal Component");
+
+            // title
+            svgPCA.append("text")
+                .attr("x", width / 2)
+                .attr("y", -10)
+                .attr("class", "plot-title")
+                .text("PCA Scatter Plot");
+
+            // points
+            svgPCA.selectAll("circle")
+                .data(pcaCoords)
+                .enter()
+                .append("circle")
+                .attr("class", "point")
+                .attr("cx", d => xScale(d[0]))
+                .attr("cy", d => yScale(d[1]))
+                .attr("r", 3);
+
+            // Scree bar graph
+            // scales
+            const xScaleScree = d3.scaleBand()
+                .domain(d3.range(explainedVariance.length))
+                .range([0, width])
+                .padding(0.1);
+
+            const yScaleScree = d3.scaleLinear()
+                .domain([0, d3.max(explainedVariance)])
+                .range([height, 0]);
+
+            // axes
+            svgScree.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(xScaleScree).tickFormat(i => `PC${i+1}`));
+
+            svgScree.append("g")
+                .call(d3.axisLeft(yScaleScree).tickFormat(d => `${(d*100).toFixed(1)}%`));
+
+            // axis
+            svgScree.append("text")
+                .attr("x", width / 2)
+                .attr("y", height + 40)
+                .attr("class", "axis-label")
+                .style("text-anchor", "middle")
+                .text("Principal Component");
+
+            svgScree.append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("x", -height / 2)
+                .attr("y", -40)
+                .attr("class", "axis-label")
+                .style("text-anchor", "middle")
+                .text("Explained Variance Ratio");
+
+            // title
+            svgScree.append("text")
+                .attr("x", width / 2)
+                .attr("y", -10)
+                .attr("class", "plot-title")
+                .text("Scree Plot");
+
+            // bars
+            svgScree.selectAll("rect")
+                .data(explainedVariance)
+                .enter()
+                .append("rect")
+                .attr("class", "bar")
+                .attr("x", (d, i) => xScaleScree(i))
+                .attr("y", d => yScaleScree(d))
+                .attr("width", xScaleScree.bandwidth())
+                .attr("height", d => height - yScaleScree(d));
+
+        });
+    </script>
+</body>
+</html>

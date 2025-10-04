@@ -1,0 +1,216 @@
+<!-- HTML frontend elements were generated with Claude and modified to my liking -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parallel Coordinates</title>
+    <link rel="stylesheet" href="shared-styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        .axis text {
+            font-size: 9px;
+        }
+        
+        .background path {
+            fill: none;
+            stroke: #ddd;
+            stroke-opacity: 0.4;
+        }
+        
+        .foreground path {
+            fill: none;
+            stroke: steelblue;
+            stroke-opacity: 0.4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Parallel Coordinates</h1>
+        <a href="index.html" class="back-link">← Back to Index</a>
+        <div id="visualization" class="visualization"></div>
+    </div>
+
+    <script>
+        async function drawParallelCoordinates() {
+            // load the data
+            const data = await d3.json('parallel_coordinates_data.json');
+            const corr = data.corr;
+            const values = data.data;
+            const cata = data.cata;
+            const variables = data.column_names;
+            
+            const total_data = []
+            // combine Numerical & Catagorical Data
+            for (let i = 0; i < values.length; i++) {
+                total_data[i] = Object.assign({}, values[i], cata[i]);
+            }
+
+            // convert the data into Array form 
+            // (inspiration from https://stackoverflow.com/questions/11734417/javascript-equivalent-of-pythons-values-dictionary-method)
+            const corr_arr = [];
+            for (let i = 0; i < variables.length-2; i++) {
+                corr_arr[i] = Object.keys(corr[i]).map(function(key){
+                    return corr[i][key];
+                });
+            }
+            const cata_arr = [];
+            const values_arr = [];
+            for (let i = 0; i < values.length; i++) {
+                values_arr[i] = Object.keys(values[i]).map(function(key){
+                    return values[i][key];
+                });
+                cata_arr[i] = Object.keys(cata[i]).map(function(key){
+                    return cata[i][key];
+                });
+            }
+            // dimensions
+            const margin = {top: 30, right: 200, bottom: 30, left: 50};
+            const width = 1300 - margin.left - margin.right;
+            const height = 600 - margin.top - margin.bottom;
+
+            /* I used Chatgpt to help me with the mathematics of creating Parallel Coordinate Display 
+                using the "High-D visualization" notes from class
+                1) Run a mass-spring model Run Traveling Salesman on the correlation nodes
+                2) Run Traveling Salesman on the correlation nodes
+                3) Use it to order your parallel coordinate axes via TSP
+            */
+
+            // Helper function: Euclidean distance between two nodes
+            function euclideanDist(a, b) {
+                let sum = 0;
+                for (let i = 0; i < a.length; i++) {
+                    sum += Math.pow(a[i] - b[i], 2);
+                }
+                return Math.sqrt(sum);
+            }
+            
+            // 1: create a distance matrix using the correlation data
+            const numericalVariables = variables.slice(0,variables.length-2);  // only numeric variables for TSP
+            const distMatrix = new Array(numericalVariables.length);
+            for (let i = 0; i < numericalVariables.length; i++) {
+                distMatrix[i] = new Array(numericalVariables.length);
+                for (let j = 0; j < variables.length; j++) {
+                    distMatrix[i][j] = Math.abs(1 - corr_arr[i][j]);  // distance = 1 - correlation
+                }
+            }
+            // 2: TSP solver
+            function tspSolver(distMatrix) {
+                const n = distMatrix.length;
+                const visited = new Array(n).fill(false);
+                const result = [0]; // Start from the first node
+                visited[0] = true;
+                
+                function findNextNode(currNode) {
+                    let minDist = Infinity;
+                    let nextNode = -1;
+                    for (let i = 0; i < n; i++) {
+                        if (!visited[i] && distMatrix[currNode][i] < minDist) {
+                            minDist = distMatrix[currNode][i];
+                            nextNode = i;
+                        }
+                    }
+                    return nextNode;
+                }
+
+                for (let i = 1; i < n; i++) {
+                    const currNode = result[result.length - 1];
+                    const nextNode = findNextNode(currNode);
+                    result.push(nextNode);
+                    visited[nextNode] = true;
+                }
+
+                return result;
+            }
+
+            // 3: TSP order for numerical variables
+            const tspOrder = tspSolver(distMatrix);
+
+            const optimizedDimensions = tspOrder.map(index => variables[index]);
+            
+            // add catagorical variables after
+            optimizedDimensions.push(variables[variables.length-2], variables[variables.length-1]);
+
+            // scales
+            const y = {};
+            optimizedDimensions.forEach(dim => {
+                if (dim === variables[variables.length-2] || dim === variables[variables.length-1]) {
+                    // Ordinal scale for categorical variables
+                    const categories = Array.from(new Set(cata.map(d => d[dim])));
+                    y[dim] = d3.scalePoint()
+                        .domain(categories)
+                        .range([height, 0]);
+                } else {
+                    // Linear scale for numeric variables
+                    y[dim] = d3.scaleLinear()
+                        .domain(d3.extent(values, d => d[dim]))
+                        .range([height, 0]);
+                }
+            });
+
+            // pos axis
+            const x = d3.scalePoint()
+                .domain(optimizedDimensions)
+                .range([0, width]);
+
+            // create graph
+            const svg = d3.select("#visualization")
+                .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            // add black background lines for context (template from Chatgpt)
+            const background = svg.append("g")
+                .attr("class", "background")
+                .selectAll("path")
+                .data(total_data)
+                .enter()
+                .append("path")
+                .attr("d", path);
+
+            // Add blue foreground lines for focus (template from Chatgpt)
+            const foreground = svg.append("g")
+                .attr("class", "foreground")
+                .selectAll("path")
+                .data(total_data)
+                .enter()
+                .append("path")
+                .attr("d", path);
+
+            // group element
+            const g = svg.selectAll(".dimension")
+                .data(optimizedDimensions)
+                .enter()
+                .append("g")
+                .attr("class", "dimension")
+                .attr("transform", d => `translate(${x(d)})`);
+
+            // axes and titles
+            g.append("g")
+                .attr("class", "axis")
+                .each(function(d) {
+                    if (d === 'category1' || d === 'category2') {
+                        d3.select(this).call(d3.axisLeft(y[d]).ticks(values.length));
+                    } else {
+                        d3.select(this).call(d3.axisLeft(y[d]));
+                    }
+                })
+                .append("text")
+                .attr("y", -9)
+                .attr("text-anchor", "middle")
+                .attr("fill", "black")
+                .text(d => d);
+
+            // Returns the path for a given data point (template from Chatgpt for creating the path)
+            function path(d) {
+                return d3.line()(optimizedDimensions.map(p => [x(p), y[p](d[p])]));
+            }
+        }
+
+        drawParallelCoordinates();
+    </script>
+</body>
+</html>

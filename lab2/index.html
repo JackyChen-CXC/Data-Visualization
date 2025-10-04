@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Jacky Chen - Lab 2</title>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <style> 
+        /* I asked Claude how to use a Dropdown Menu and I used its suggestions to format the dropdown content*/
+            body { font-family: Arial, sans-serif; }
+            .container { width: 80%; margin: 0 auto; }
+            .chart { margin-bottom: 50px; }
+            .dropdown {
+                position: relative;
+                display: inline-block;
+            }
+            .dropdown-content {
+                display: none;
+                position: absolute;
+                background-color: #f9f9f9;
+                min-width: 160px;
+                box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+                z-index: 1;
+            }
+            .dropdown-content a {
+                color: black;
+                padding: 12px 16px;
+                text-decoration: none;
+                display: block;
+            }
+            .dropdown-content a:hover {background-color: #f1f1f1}
+            .show {display:block;}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="display-controls">
+              <label>
+                <input type="radio" name="display-mode" value="current" checked> Current Visualizations
+              </label>
+              <label>
+                <input type="radio" name="display-mode" value="future"> Future Visualizations
+              </label>
+            </div>
+          
+            <!-- Current Visualizations Display -->
+            <div id="current-display" class="display-mode">
+              <div class="control-panel">
+                <select id="variable-select" class="form-select">
+                  <option value="">Select Variable</option>
+                </select>
+                <div id="chart" class="chart"></div>
+            </div>
+          
+            <!-- Future Visualizations Display -->
+        <div id="future-display" class="display-mode" style="display: none;">
+                <div id="future-chart" class="chart">
+                    <p>Future visualizations will be displayed here.</p>
+                </div>
+            </div>
+        </div>
+
+        <script src="script.js"></script>
+    </body>
+</html>

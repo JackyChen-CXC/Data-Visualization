@@ -1,0 +1,178 @@
+<!-- HTML frontend elements were generated with Claude and modified to my liking -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>7x7 Scatterplot Matrix</title>
+    <link rel="stylesheet" href="shared-styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
+        .axis text {
+            font-size: 5px;
+        }
+        .cell {
+            font-size: 10px;
+        }
+        .plot-box {
+            stroke: black;
+            stroke-width: 1;
+            fill: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Scatterplot Matrix</h1>
+        <a href="index.html" class="back-link">← Back to Index</a>
+        <h3> This Graph Takes a few Seconds to Load, Please Wait Patiently.</h3>
+        <div id="visualization" class="visualization"></div>
+    </div>
+
+    <script>
+        async function drawScatterplotMatrix() {
+            // load
+            const data = await d3.json('scatterplot_data.json');
+            const values = data.data;
+            const variables = data.column_names;
+            const numericalVariables = variables.slice(0, variables.length - 2);
+            const categoricalVariables = variables.slice(-2);
+
+            const margin = {top: 0, right: 100, bottom: 100, left: 100};
+            const width = 1100 - margin.left - margin.right;
+            const height = 1100 - margin.top - margin.bottom;
+            const padding = 15;
+            const size = (width - (variables.length + 1) * padding) / variables.length;
+
+            // numerical scales
+            const scales = {};
+            numericalVariables.forEach((v, i) => {
+                const extent = d3.extent(values.map(d => d[v]));
+                scales[v] = d3.scaleLinear().domain(extent).range([padding / 2, size - padding / 2]);
+            });
+
+            // categorical scales
+            categoricalVariables.forEach(v => {
+                const categories = Array.from(new Set(values.map(d => d[v])));
+                scales[v] = d3.scalePoint()
+                    .domain(categories)
+                    .range([padding / 2, size - padding / 2])
+                    .padding(0.5);
+            });
+
+            const svg = d3.select('#visualization')
+                .append('svg')
+                .attr('width', width + margin.left + margin.right)
+                .attr('height', height + margin.top + margin.bottom)
+                .append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+
+            // I asked ChatGPT how to jitter data points and used their template to jitter catagorical values
+            function jitter(value, scale, jitterAmount = 0.1) {
+                const jitterRange = (scale.range()[1] - scale.range()[0]) * jitterAmount;
+                return scale(value) + (Math.random() - 0.5) * jitterRange;
+            }
+            // used Claude to learn how to format and make a Matrix (plots inside plot)
+            // X Iterator
+            variables.forEach((xVar, i) => {
+                // Y Iterator
+                variables.forEach((yVar, j) => {
+                    const cell = svg.append('g')
+                        .attr('transform', `translate(${i * size},${j * size})`);
+                    // NOT DIAGONAL
+                    if (i !== j) {
+                        const g = cell.append("g");
+                        // scatterplot for each pair of xVar & yVar
+                        g.selectAll("circle")
+                            .data(values)
+                            .enter().append("circle")
+                            .attr("cx", d => {
+                                // jitter function made from ChatGPT
+                                const counter = new Set(values.map(d => d[xVar])).size
+                                if (counter < 10) {
+                                    return jitter(d[xVar], scales[xVar]); // Jitter for numerical or categorical with < 10 unique
+                                }
+                                return scales[xVar](d[xVar]); // No jitter
+                            })
+                            .attr("cy", d => {
+                                // jitter function made from ChatGPT
+                                const counter = new Set(values.map(d => d[yVar])).size
+                                if (counter < 10) {
+                                    return jitter(d[yVar], scales[yVar]); // Jitter for numerical or categorical with < 10 unique
+                                }
+                                return scales[yVar](d[yVar]); // No jitter
+                            })
+                            .attr("r", 3)
+                            .style("fill", "steelblue")
+                            .style("opacity", 0.5);
+
+                        // add the box around each scatterplot
+                        g.append("rect")
+                            .attr("class", "plot-box")
+                            .attr("x", 0)
+                            .attr("y", 0)
+                            .attr("width", size)
+                            .attr("height", size);
+
+                        // add x-axis only on the bottom outer wall
+                        if (j === variables.length - 1) {
+                            g.append("g")
+                                .attr("class", "axis")
+                                .attr("transform", `translate(0, ${size - padding / 2})`)
+                                .call(d3.axisBottom(scales[xVar]).ticks(5));
+                        }
+
+                        // add y-axis only on the left outer wall
+                        if (i === 0) {
+                            g.append("g")
+                                .attr("class", "axis")
+                                .attr("transform", `translate(${padding / 2}, 0)`)
+                                .call(d3.axisLeft(scales[yVar]).ticks(5));
+                        }
+                    } else {
+                        // add text for the diagonals
+                        cell.append("text")
+                            .style("font-size", "7px")
+                            .attr("x", size / 2)
+                            .attr("y", size / 2)
+                            .attr("dy", ".35em")
+                            .attr("text-anchor", "middle")
+                            .text(xVar);
+
+                        cell.append("rect")
+                            .attr("class", "plot-box")
+                            .attr("x", 0)
+                            .attr("y", 0)
+                            .attr("width", size)
+                            .attr("height", size);
+                        
+                        // for bottom-right diagonal
+                        if (j === variables.length - 1) {
+                            cell.append("g")
+                                .attr("class", "axis")
+                                .attr("transform", `translate(0, ${size - padding / 2})`)
+                                .call(d3.axisBottom(scales[xVar]).ticks(5));
+                        }
+
+                        // for top-left diagonal
+                        if (i === 0) {
+                            cell.append("g")
+                                .attr("class", "axis")
+                                .attr("transform", `translate(${padding / 2}, 0)`)
+                                .call(d3.axisLeft(scales[yVar]).ticks(5));
+                        }
+                    }
+                });
+            });
+        }
+
+        drawScatterplotMatrix();
+    </script>
+</body>
+</html>

@@ -1,0 +1,160 @@
+<!-- HTML frontend elements were generated with Claude and modified to my liking -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCA Biplot</title>
+    <link rel="stylesheet" href="shared-styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        .axis-line {    /* styling modified from ChatGPT template code */
+            stroke: #000000;
+        }
+        .axis-label {
+            font-size: 12px;
+            fill: #ff3131;
+        }
+        .point {
+            fill: #4682b4;
+            opacity: 0.6;
+        }
+        .loading {
+            font-family: Arial, sans-serif;
+            font-size: 20px;
+            text-align: center;
+        }
+        .quadrant-line {
+            stroke: #000000;
+            stroke-width: 1;
+        }
+        .quadrant-label {
+            font-size: 16px;
+            font-family: Arial, sans-serif;
+            fill: #000000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PCA Biplot</h1>
+        <a href="index.html" class="back-link">← Back to Index</a>
+        <div id="visualization" class="visualization"></div>
+    </div>
+
+    <script>
+        async function drawBiplot() {
+            // dimensions
+            const margin = {top: 40, right: 40, bottom: 60, left: 60};
+            const width = 600 - margin.left - margin.right;
+            const height = 600 - margin.top - margin.bottom;
+            const axisLimit = 5; 
+
+            // make graph
+            const svg = d3.select("#visualization")
+                .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            // load
+            d3.json("biplot_data.json").then(data => {
+                const pcaCoords = data.pca_coords;
+                const loadings = data.loadings;
+                const variables = data.column_names;
+
+                // scales
+                const xScale = d3.scaleLinear()
+                    .domain([-axisLimit, axisLimit])
+                    .range([0, width]);
+
+                const yScale = d3.scaleLinear()
+                    .domain([-axisLimit, axisLimit])
+                    .range([height, 0]);
+
+                // axes
+                const xAxis = d3.axisBottom(xScale)
+                    .tickSize(-5) 
+                    .ticks(10); 
+
+                const yAxis = d3.axisLeft(yScale)
+                    .tickSize(5)
+                    .ticks(10);
+
+                // Append X axis in the center (Asked Chatgpt how to make axes from the center and used their template)
+                svg.append("g")
+                    .attr("transform", `translate(0,${yScale(0)})`) // Move the axis to the y=0 line
+                    .call(xAxis)
+                    .selectAll("text")
+                    .attr("dy", "-1.5em"); // Adjust text position
+
+                // Append Y axis in the center
+                svg.append("g")
+                    .attr("transform", `translate(${xScale(0)},0)`) // Move the axis to the x=0 line
+                    .call(yAxis)
+                    .selectAll("text")
+                    .attr("dx", "-0.5em"); // Adjust text position
+
+                // points
+                svg.selectAll("circle")
+                    .data(pcaCoords)
+                    .enter()
+                    .append("circle")
+                    .attr("class", "point")
+                    .attr("cx", d => xScale(d[0]))
+                    .attr("cy", d => yScale(d[1]))
+                    .attr("r", 3);
+
+                // x axis label 
+                svg.append("text")
+                    .attr("class", "axis-label")
+                    .attr("x", width / 2)
+                    .attr("y", height + 40)
+                    .style("text-anchor", "middle")
+                    .style("fill", "#000000")
+                    .text("First Principal Component");
+
+                // y axis label
+                svg.append("text")
+                    .attr("class", "axis-label")
+                    .attr("transform", "rotate(-90)")
+                    .attr("x", -height / 2)
+                    .attr("y", -45) 
+                    .style("text-anchor", "middle")
+                    .style("fill", "#000000")
+                    .text("Second Principal Component");
+
+                // Add biplot axes (Asked Chatgpt how to make biplot axes and used their template)
+                const scaleFactor = 1; // Adjust to fine-tune loadings
+
+                loadings.forEach((loading, i) => { 
+                    const x2 = loading[0] * scaleFactor * axisLimit;
+                    const y2 = loading[1] * scaleFactor * axisLimit;
+
+                    // Draw axis line
+                    svg.append("line")
+                        .attr("class", "axis-line")
+                        .attr("x1", xScale(0))
+                        .attr("y1", yScale(0))
+                        .attr("x2", xScale(x2))
+                        .attr("y2", yScale(y2))
+                        
+
+                    // Add axis label
+                    const labelX = xScale(x2 * 1.1);
+                    const labelY = yScale(y2 * 1.1);
+
+                    svg.append("text")
+                        .attr("class", "axis-label")
+                        .attr("x", labelX)
+                        .attr("y", labelY)
+                        .style("text-anchor", "middle")
+                        .text(variables[i]);
+                });
+            });
+        }
+        drawBiplot();
+    </script>
+</body>
+</html>

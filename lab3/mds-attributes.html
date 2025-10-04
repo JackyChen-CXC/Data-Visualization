@@ -1,0 +1,118 @@
+<!-- HTML frontend elements were generated with Claude and modified to my liking -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MDS Attributes</title>
+    <link rel="stylesheet" href="shared-styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        .attribute-label { /* styling modified from ChatGPT template code */
+            font-size: 12px;
+            fill: #000000;
+        }
+        .attribute-point {
+            fill: #e41a1c;
+        }
+        .loading {
+            font-family: Arial, sans-serif;
+            font-size: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MDS Attributes</h1>
+        <a href="index.html" class="back-link">← Back to Index</a>
+        <div id="visualization" class="visualization"></div>
+    </div>
+
+    <script>
+        // dimensions
+        const margin = {top: 40, right: 100, bottom: 40, left: 60};
+        const width = 800 - margin.left - margin.right;
+        const height = 600 - margin.top - margin.bottom;
+
+        // create graph
+        const svg = d3.select("#visualization")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        // load
+        d3.json("mds_attr.json").then(data => {
+            const mdsCoords = data.mds_attributes;
+            const variables = data.column_names;
+
+            // scales
+            const xExtent = d3.extent(mdsCoords, d => d[0]);
+            const yExtent = d3.extent(mdsCoords, d => d[1]);
+            const padding = 0.1;
+
+            const xScale = d3.scaleLinear()
+                .domain([xExtent[0] * (1 + padding), xExtent[1] * (1 + padding)])
+                .range([0, width]);
+
+            const yScale = d3.scaleLinear()
+                .domain([yExtent[0] * (1 + padding), yExtent[1] * (1 + padding)])
+                .range([height, 0]);
+
+            // axes
+            const xAxis = d3.axisBottom(xScale);
+            const yAxis = d3.axisLeft(yScale);
+
+            svg.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(xAxis);
+
+            svg.append("g")
+                .call(yAxis);
+
+            // axis labels
+            svg.append("text")
+                .attr("x", width / 2)
+                .attr("y", height + 35)
+                .style("text-anchor", "middle")
+                .text("MDS Dimension 1");
+
+            svg.append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("x", -height / 2)
+                .attr("y", -45)
+                .style("text-anchor", "middle")
+                .text("MDS Dimension 2");
+
+            // title
+            svg.append("text")
+                .attr("x", width / 2)
+                .attr("y", -10)
+                .style("text-anchor", "middle")
+                .style("font-size", "16px")
+                .text("MDS Plot of Attributes");
+
+            // points and labels (Asked Chatgpt how to label points)
+            const points = svg.selectAll("g.attribute")
+                .data(mdsCoords)
+                .enter()
+                .append("g")
+                .attr("class", "attribute");
+
+            points.append("circle")
+                .attr("class", "attribute-point")
+                .attr("cx", d => xScale(d[0]))
+                .attr("cy", d => yScale(d[1]))
+                .attr("r", 4);
+
+            points.append("text")
+                .attr("class", "attribute-label")
+                .attr("x", d => xScale(d[0]) + 8)
+                .attr("y", d => yScale(d[1]) + 4)
+                .text((d, i) => variables[i]);
+        });
+    </script>
+</body>
+</html>

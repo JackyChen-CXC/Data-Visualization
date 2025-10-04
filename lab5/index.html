@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Gym Exercise Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 10px;
+            height: 100vh;
+            max-height: 700px;
+        }
+        .visualization {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 10px;
+            overflow: hidden;
+        }
+        .visualization h3 {
+            margin-top: 0;
+            text-align: center;
+            color: #333;
+        }
+        .axis-label {
+            fill: #333;
+        }
+        .axis-line {
+            stroke: #333;
+        }
+        #buttons {
+            display: flex;
+            flex-direction: column; /* Align items vertically */
+            align-items: center; /* Center items horizontally */
+            grid-column: 3; 
+            grid-row: 2;
+        }
+        #type-chart { grid-column: 1; grid-row: 1; }
+        #biplot { grid-column: 2; grid-row: 1; }
+        #heatmap { grid-column: 3; grid-row: 1; }
+        #area-chart { grid-column: 1 / span 2; grid-row: 2; }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div id="type-chart" class="visualization">
+            <h3>Histogram / Bar Chart</h3>
+            <!-- Dynamic dropdown for bar chart -->
+        </div>
+        
+        <div id="biplot" class="visualization">
+            <h3>Biplot Analysis</h3>
+            <!-- Scatter plot -->
+        </div>
+        
+        <div id="heatmap" class="visualization">
+            <h3>Heatmap</h3>
+            <!-- Histogram of BPM -->
+        </div>
+        
+        <div id="area-chart" class="visualization">
+            <h3>Area Chart</h3>
+            <!-- Dropdowns for area chart -->
+        </div>
+
+        <div id="buttons" class="visualization">
+            <h3>Chart Configuration</h3>
+            <!-- Dropdowns for histogram/bar chart -->
+
+            <select id="categories-dropdown">
+                <option value="">Select Main Variable for Histogram/Bar Chart</option>
+                <!-- Categories populated dynamically -->
+            </select>
+
+            <select id="variables-dropdown-2">
+                <option value="">Select X-axis for Area Chart</option>
+                <!-- Variables populated dynamically -->
+            </select>
+        </div>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>
